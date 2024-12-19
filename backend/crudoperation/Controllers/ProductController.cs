@@ -22,7 +22,7 @@ namespace crudoperation.Controllers
                 return NotFound();
             }
           
-            return await _dbContext.Products.Include(p => p.category).ToListAsync();
+            return await _dbContext.Products.ToListAsync();
         }
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
@@ -36,47 +36,67 @@ namespace crudoperation.Controllers
             {
                 return NotFound();
             }
-            return Ok(product.name);
+            return Ok(product);
         }
         [HttpPost]
-        public async Task<ActionResult<Product>> PostBrand(Product product)
+        public async Task<ActionResult<Product>> PostProduct(Product product)
         {
-            var category = await _dbContext.Categories.FindAsync(product.category.Id);
+            var category = await _dbContext.Categories.FindAsync(product.categoryID);
 
             if (category == null)
             {
                 // If the provided category Id does not exist, return BadRequest or handle the error accordingly
                 return BadRequest("Invalid category Id");
             }
-            product.category = category;
+            product.categoryID = category.Id;
             _dbContext.Products.Add(product);
             await _dbContext.SaveChangesAsync();
             return product;
         }
-        [HttpPut]
-        public async Task<IActionResult> PutBrand(int id,Product product)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProduct(int id, Product product)
         {
             if (id != product.ID)
             {
-                return BadRequest();   
+                return BadRequest();
             }
-            _dbContext.Entry(product).State = EntityState.Modified;
+
+            // Check if the product exists before updating
+            var existingProduct = await _dbContext.Products.FindAsync(id);
+            if (existingProduct == null)
+            {
+                return NotFound();
+            }
+
+            // Update the existing product fields
+            existingProduct.name = product.name;
+            existingProduct.Quantity = product.Quantity;
+            existingProduct.categoryID = product.categoryID; // Assign the new categoryID
+
             try
             {
                 await _dbContext.SaveChangesAsync();
-            }catch(DbUpdateConcurrencyException)
+            }
+            catch (DbUpdateConcurrencyException)
             {
-                if(!ProductAvailable(id))
+                if (!ProductAvailable(id))
                 {
                     return NotFound();
                 }
-                else { throw; }
-            } return Ok();  
+                else
+                {
+                    throw;
+                }
+            }
+
+            return Ok();
         }
+
         private bool ProductAvailable(int id)
         {
-            return (_dbContext.Products?.Any(x=>x.ID == id)).GetValueOrDefault();
+            return (_dbContext.Products?.Any(x => x.ID == id)).GetValueOrDefault();
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
@@ -125,7 +145,7 @@ namespace crudoperation.Controllers
         {
 
             var products = await _dbContext.Products
-    .Where(p => p.category.Id == categoryId)
+    .Where(p => p.categoryID == categoryId)
     .Select(p => new
     {
         p.ID,
@@ -136,11 +156,11 @@ namespace crudoperation.Controllers
     .ToListAsync();
             return Ok(products);
         }
-        [HttpGet("productbycategoryName")]
+       /* [HttpGet("productbycategoryName")]
         public async Task<ActionResult<IEnumerable<Product>>> GetProductByCategoryName(string categoryName)
         {
             var products=await _dbContext.Products.Where(p=>p.category.Name == categoryName).ToListAsync();
             return Ok(products);
-        }
+        }*/
     }
 }

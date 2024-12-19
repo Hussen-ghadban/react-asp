@@ -36,10 +36,8 @@ const AddProduct = () => {
     try {
       const response = await axios.post("http://localhost:5118/api/Product", {
         name: product.name,
-        category: { id: parseInt(product.categoryId),
-                name:""
-         },
-        quantity: parseFloat(product.quantity), // Ensure quantity is a number
+        categoryID:product.categoryId,
+        quantity: product.quantity, // Ensure quantity is a number
       });
 
       setMessage("Product added successfully!");
